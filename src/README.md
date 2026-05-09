@@ -38,9 +38,3 @@ Para la implementación de Code 11, se han seguido las siguientes reglas técnic
 | **9** | 9 | `10000` | **Barra ancha**, Espacio estrecho, Barra estrecha, Espacio estrecho, Barra estrecha |
 | **-** | 10 | `00100` | Barra estrecha, Espacio estrecho, **Barra ancha**, Espacio estrecho, Barra estrecha |
 | **Start/Stop** | - | `00110` | Barra estrecha, Espacio estrecho, **Barra ancha**, **Espacio ancho**, Barra estrecha |
-
----
-**Nota técnica para la implementación:**
-1. Los bits `0` representan ancho **estrecho** (1 unidad).
-2. Los bits `1` representan ancho **ancho** (2 unidades).
-3. Cada patrón debe ir seguido de un **espacio estrecho (gap)** de 1 unidad que no está incluido en la tabla.
