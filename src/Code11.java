@@ -7,13 +7,12 @@
 //     https://www.free-barcode-generator.net/code-11/
 //     https://products.aspose.app/barcode/generate
 
-import java.util.HashMap;
 import java.util.Map;
 import static java.util.Map.entry;
 
 public class Code11 {
 
-    private static Map<Character, String> diccionary = Map.ofEntries(
+    private static Map<Character, String> diccionaryKeyToBits = Map.ofEntries(
             entry('0', "00001"),
             entry('1', "10001"),
             entry('2', "01001"),
@@ -26,6 +25,21 @@ public class Code11 {
             entry('9', "10000"),
             entry('-', "00100"),
             entry('*', "00110")
+    );
+
+    private static Map<String, Character> diccionaryBitsToKey = Map.ofEntries(
+            entry("00001", '0'),
+            entry("10001", '1'),
+            entry("01001", '2'),
+            entry("11000", '3'),
+            entry("00101", '4'),
+            entry("10100", '5'),
+            entry("01100", '6'),
+            entry("00011", '7'),
+            entry("10010", '8'),
+            entry("10000", '9'),
+            entry("00100", '-'),
+            entry("00110", '*')
     );
 
     private static String wideBar = "██";
@@ -51,7 +65,7 @@ public class Code11 {
     private static String createpattern(char key) {
         StringBuilder res = new StringBuilder();
 
-        String mappattern = diccionary.get(key);
+        String mappattern = diccionaryKeyToBits.get(key);
         boolean isBar = true;
 
         for (int i = 0; i < mappattern.length(); i++) {
