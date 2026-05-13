@@ -38,20 +38,20 @@ public class Code11 {
         StringBuilder res = new StringBuilder();
 
         for (int i = 0; i < s.length(); i++) {
-            char c = s.charAt(i);
-            res.append(createpattern(c));
+            char key = s.charAt(i);
+            res.append(createpattern(key));
             if (!(i == s.length() - 1)){
-                res.append(" ");
+                res.append(narrowSpace);
             }
         }
 
         return res.toString();
     }
 
-    private static String createpattern(char c) {
+    private static String createpattern(char key) {
         StringBuilder res = new StringBuilder();
 
-        String mappattern = diccionary.get(c);
+        String mappattern = diccionary.get(key);
         boolean isBar = true;
 
         for (int i = 0; i < mappattern.length(); i++) {
@@ -72,7 +72,22 @@ public class Code11 {
 
     // Decodifica amb Code11
     static String decode(String s) {
+        s = s.trim();
+        int unitWidth = calcularLongitud(s);
         return "";
+    }
+
+    private static int calcularLongitud(String s) {
+        int res = 0;
+        int index = 0;
+        char[] code = s.toCharArray();
+
+        while (code[index] == '█'){
+            res++;
+            index++;
+        }
+
+        return res;
     }
 
     // Decodifica una imatge. La imatge ha d'estar en format "ppm"
