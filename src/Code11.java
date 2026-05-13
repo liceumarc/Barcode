@@ -7,8 +7,8 @@
 //     https://www.free-barcode-generator.net/code-11/
 //     https://products.aspose.app/barcode/generate
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+
 import static java.util.Map.entry;
 
 public class Code11 {
@@ -69,26 +69,78 @@ public class Code11 {
         return res.toString();
     }
 
-
     // Decodifica amb Code11
     static String decode(String s) {
         s = s.trim();
-        int unitWidth = calcularLongitud(s);
+        if (!isValidWord(s)){
+            return null;
+        }
+
+        ArrayList<Integer> numeros = countValues(s);
+
+        System.out.println(numeros);
+
+        for (int i = 1; i < numeros.size(); i++) {
+            if (i % 6 == 0){
+                numeros.remove(i);
+            }
+        }
+
+        int averageNarrow = (numeros.get(0) + numeros.get(1) + numeros.get(4)) / 3;
+        int averageWide = (numeros.get(2) + numeros.get(3)) / 2;
+        
+        
+        Map<Integer, List<Integer>> GroupBits = new HashMap<>();
+
+        List<Integer> groupOfFive = new ArrayList<>();
+        
+        int count = 0;
+        for (int i = 0; i < numeros.size(); i++) {
+            groupOfFive.add(numeros.get(i));
+            count++;
+            if (count == 4){
+                GroupBits.put()
+                count = 0;
+            }
+        }
+        
+        System.out.println(numeros);
+        System.out.println(averageNarrow + " " + averageWide);
         return "";
     }
 
-    private static int calcularLongitud(String s) {
-        int res = 0;
-        int index = 0;
-        char[] code = s.toCharArray();
+    private static ArrayList<Integer> countValues(String s) {
 
-        while (code[index] == '█'){
-            res++;
-            index++;
+        ArrayList<Integer> numeros = new ArrayList<>();
+
+        int count = 1;
+        char actual = s.charAt(0);
+
+        for (int i = 1; i < s.length(); i++) {
+            char index = s.charAt(i);
+
+            if (actual == index){
+                count++;
+            } else {
+                numeros.add(count);
+                count = 1;
+                actual = index;
+            }
+
         }
 
-        return res;
+        numeros.add(count);
+
+        return numeros;
     }
+
+    private static boolean isValidWord(String s) {
+        if (!s.matches("[█ ]+")){
+            return false;
+        }
+        return true;
+    }
+
 
     // Decodifica una imatge. La imatge ha d'estar en format "ppm"
     public static String decodeImage(String str) {
