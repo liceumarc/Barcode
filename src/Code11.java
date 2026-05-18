@@ -7,12 +7,13 @@
 //     https://www.free-barcode-generator.net/code-11/
 //     https://products.aspose.app/barcode/generate
 
-import java.util.Map;
+import java.util.*;
+
 import static java.util.Map.entry;
 
 public class Code11 {
 
-    private static Map<Character, String> diccionaryKeyToBits = Map.ofEntries(
+    private static Map<Character, String> diccionary = Map.ofEntries(
             entry('0', "00001"),
             entry('1', "10001"),
             entry('2', "01001"),
@@ -25,21 +26,6 @@ public class Code11 {
             entry('9', "10000"),
             entry('-', "00100"),
             entry('*', "00110")
-    );
-
-    private static Map<String, Character> diccionaryBitsToKey = Map.ofEntries(
-            entry("00001", '0'),
-            entry("10001", '1'),
-            entry("01001", '2'),
-            entry("11000", '3'),
-            entry("00101", '4'),
-            entry("10100", '5'),
-            entry("01100", '6'),
-            entry("00011", '7'),
-            entry("10010", '8'),
-            entry("10000", '9'),
-            entry("00100", '-'),
-            entry("00110", '*')
     );
 
     private static String wideBar = "██";
@@ -65,7 +51,7 @@ public class Code11 {
     private static String createpattern(char key) {
         StringBuilder res = new StringBuilder();
 
-        String mappattern = diccionaryKeyToBits.get(key);
+        String mappattern = diccionary.get(key);
         boolean isBar = true;
 
         for (int i = 0; i < mappattern.length(); i++) {
@@ -83,26 +69,78 @@ public class Code11 {
         return res.toString();
     }
 
-
     // Decodifica amb Code11
     static String decode(String s) {
         s = s.trim();
-        int unitWidth = calcularLongitud(s);
+        if (!isValidWord(s)){
+            return null;
+        }
+
+        ArrayList<Integer> numeros = countValues(s);
+
+        System.out.println(numeros);
+
+        for (int i = 1; i < numeros.size(); i++) {
+            if (i % 6 == 0){
+                numeros.remove(i);
+            }
+        }
+
+        int averageNarrow = (numeros.get(0) + numeros.get(1) + numeros.get(4)) / 3;
+        int averageWide = (numeros.get(2) + numeros.get(3)) / 2;
+        
+        
+        Map<Integer, List<Integer>> GroupBits = new HashMap<>();
+
+        List<Integer> groupOfFive = new ArrayList<>();
+        
+        int count = 0;
+        for (int i = 0; i < numeros.size(); i++) {
+            groupOfFive.add(numeros.get(i));
+            count++;
+            if (count == 4){
+                GroupBits.put()
+                count = 0;
+            }
+        }
+        
+        System.out.println(numeros);
+        System.out.println(averageNarrow + " " + averageWide);
         return "";
     }
 
-    private static int calcularLongitud(String s) {
-        int res = 0;
-        int index = 0;
-        char[] code = s.toCharArray();
+    private static ArrayList<Integer> countValues(String s) {
 
-        while (code[index] == '█'){
-            res++;
-            index++;
+        ArrayList<Integer> numeros = new ArrayList<>();
+
+        int count = 1;
+        char actual = s.charAt(0);
+
+        for (int i = 1; i < s.length(); i++) {
+            char index = s.charAt(i);
+
+            if (actual == index){
+                count++;
+            } else {
+                numeros.add(count);
+                count = 1;
+                actual = index;
+            }
+
         }
 
-        return res;
+        numeros.add(count);
+
+        return numeros;
     }
+
+    private static boolean isValidWord(String s) {
+        if (!s.matches("[█ ]+")){
+            return false;
+        }
+        return true;
+    }
+
 
     // Decodifica una imatge. La imatge ha d'estar en format "ppm"
     public static String decodeImage(String str) {
