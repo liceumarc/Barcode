@@ -8,12 +8,11 @@
 //     https://products.aspose.app/barcode/generate
 
 import java.util.*;
-
 import static java.util.Map.entry;
 
 public class Code11 {
 
-    private static Map<Character, String> diccionary = Map.ofEntries(
+    private static final Map<Character, String> diccionaryKeyToBit = Map.ofEntries(
             entry('0', "00001"),
             entry('1', "10001"),
             entry('2', "01001"),
@@ -26,6 +25,21 @@ public class Code11 {
             entry('9', "10000"),
             entry('-', "00100"),
             entry('*', "00110")
+    );
+
+    private static Map<String, String> diccionaryBitToKey = Map.ofEntries(
+            entry("00001", "0"),
+            entry("10001", "1"),
+            entry("01001", "2"),
+            entry("11000", "3"),
+            entry("00101", "4"),
+            entry("10100", "5"),
+            entry("01100", "6"),
+            entry("00011", "7"),
+            entry("10010", "8"),
+            entry("10000", "9"),
+            entry("00100", "-"),
+            entry("00110", "*")
     );
 
     private static String wideBar = "██";
@@ -51,7 +65,7 @@ public class Code11 {
     private static String createpattern(char key) {
         StringBuilder res = new StringBuilder();
 
-        String mappattern = diccionary.get(key);
+        String mappattern = diccionaryKeyToBit.get(key);
         boolean isBar = true;
 
         for (int i = 0; i < mappattern.length(); i++) {
@@ -78,37 +92,72 @@ public class Code11 {
 
         ArrayList<Integer> numeros = countValues(s);
 
-        System.out.println(numeros);
+        numeros = eliminarGap(numeros);
 
-        for (int i = 1; i < numeros.size(); i++) {
-            if (i % 6 == 0){
-                numeros.remove(i);
-            }
+        if (numeros.size() % 5 != 0) {
+            return null;
         }
 
-        int averageNarrow = (numeros.get(0) + numeros.get(1) + numeros.get(4)) / 3;
-        int averageWide = (numeros.get(2) + numeros.get(3)) / 2;
-        
-        
-        Map<Integer, List<Integer>> GroupBits = new HashMap<>();
+        // He creado una lista con los números, la he ordenado, luego he cogido el número mayor y menor los he sumado dividido entre 2 y lo he usado como punto medio
+        ArrayList<Integer> sorted = new ArrayList<>(numeros);
+        Collections.sort(sorted);
 
-        List<Integer> groupOfFive = new ArrayList<>();
-        
-        int count = 0;
+        int narrow = sorted.get(0);
+        int wide = sorted.get(sorted.size() - 1);
+
+        int threshold = (narrow + wide) / 2;
+
+        // Hacer un cadena de tipo string en formato 0 y 1
+        String numListToString = "";
+
         for (int i = 0; i < numeros.size(); i++) {
-            groupOfFive.add(numeros.get(i));
-            count++;
-            if (count == 4){
-                GroupBits.put()
-                count = 0;
+            int numActual = numeros.get(i);
+
+            if (numActual <= threshold){
+                numListToString += "0";
+            } else {
+                numListToString += "1";
             }
         }
-        
-        System.out.println(numeros);
-        System.out.println(averageNarrow + " " + averageWide);
-        return "";
+
+        // Hace grupos de 5 y busca en el mapa el grupo de 5 para traducirlo
+        String res = "";
+        String groupFiveBits = "";
+
+        for (int i = 0; i < numListToString.length(); i++) {
+            char bit = numListToString.charAt(i);
+
+            groupFiveBits += bit;
+
+            if ((i + 1) % 5 == 0) {
+
+                if (diccionaryBitToKey.get(groupFiveBits) == null){
+                    return null;
+                } else {
+                    res = res + diccionaryBitToKey.get(groupFiveBits);
+                }
+
+                groupFiveBits = "";
+                }
+            }
+
+        return res;
     }
 
+    private static ArrayList<Integer> eliminarGap(ArrayList<Integer> numeros) {
+
+        ArrayList<Integer> filtered = new ArrayList<>();
+
+        for (int i = 0; i < numeros.size(); i++) {
+            if ((i + 1) % 6 != 0) {
+                filtered.add(numeros.get(i));
+            }
+        }
+
+        return filtered;
+    }
+
+    //
     private static ArrayList<Integer> countValues(String s) {
 
         ArrayList<Integer> numeros = new ArrayList<>();
