@@ -196,7 +196,7 @@ public class Code93 {
                 cadenaBits = cadenaBits + cadenaActual;
             } else {
                 return null;
-            };
+            }
         }
 
         String res = createPattern(cadenaBits, str);
@@ -294,7 +294,57 @@ public class Code93 {
 
     // Decodifica emprant Code93
     static String decode(String str) {
+
+        ArrayList<Integer> stringBarSpacesValues = countValues(str);
+        Map<Integer, String> groupOf6 = new HashMap<>();
+
+        String grupoActual = "";
+        Integer idUnico = 0;
+
+        for (int i = 0; i < stringBarSpacesValues.size(); i++) {
+
+            if (grupoActual.length() == 6){
+                groupOf6.put(idUnico, grupoActual);
+                grupoActual = "";
+                idUnico++;
+            }
+
+            grupoActual = grupoActual + stringBarSpacesValues.get(i);
+
+        }
+
+        if (!grupoActual.isEmpty()){
+            groupOf6.put(idUnico, grupoActual);
+        }
+
+        System.out.println(groupOf6);
+
         return "";
+    }
+
+    private static ArrayList<Integer> countValues (String str){
+
+        ArrayList<Integer> res = new ArrayList<>();
+
+        int contador = 1;
+
+        for (int i = 1; i < str.length(); i++) {
+            char actualCharacter = str.charAt(i);
+            char anteriorCharacter = str.charAt(i - 1);
+
+            if (actualCharacter == anteriorCharacter){
+                contador++;
+            } else {
+                res.add(contador);
+                contador = 1;
+            }
+
+        }
+
+        res.add(contador);
+
+        System.out.println(res);
+        return res;
     }
 
     // Decodifica una imatge. La imatge ha d'estar en format "ppm"
