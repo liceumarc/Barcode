@@ -8,6 +8,9 @@
 //     https://products.aspose.app/barcode/generate
 
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import static java.util.Map.entry;
 
 public class Code11 {
@@ -90,7 +93,7 @@ public class Code11 {
             return null;
         }
 
-        ArrayList<Integer> numeros = countValues(s);
+        ArrayList<Integer> numeros = countValuesWithString(s);
 
         numeros = eliminarGap(numeros);
 
@@ -158,7 +161,7 @@ public class Code11 {
     }
 
     //
-    private static ArrayList<Integer> countValues(String s) {
+    private static ArrayList<Integer> countValuesWithString(String s) {
 
         ArrayList<Integer> numeros = new ArrayList<>();
 
@@ -193,7 +196,116 @@ public class Code11 {
 
     // Decodifica una imatge. La imatge ha d'estar en format "ppm"
     public static String decodeImage(String str) {
-        return "";
+        // Eliminar el comentario
+        str = str.replaceAll("#.*", "");
+        // Crear una lista con todos los numeros
+        Matcher matcher = Pattern.compile("\\d+").matcher(str);
+        List<Integer> numeros = new ArrayList<>();
+
+        while(matcher.find()){
+            numeros.add(Integer.parseInt(matcher.group()));
+        }
+
+        int ancho = numeros.get(1);
+        int altura = numeros.get(2);
+
+        // Crear una instancia de cada ( 3 elementos "RGB" ; 3 elementos = 1 color RGB )
+        // Luego lo identifico como 0 y 1 para saber cual es la parte negra y los espacios en blanco
+        List<Integer> pixeles = new ArrayList<>();
+
+        for (int i = 3; i < numeros.size() - 3; i += 3) {
+
+            int r = numeros.get(i);
+            int g = numeros.get(i + 1);
+            int b = numeros.get(i + 2);
+
+            PixelRGB pixel = new PixelRGB(r,g,b);
+            pixeles.add(pixel.es0or1());
+        }
+
+        int[][] barcode = new int[altura][ancho];
+        int indice = 0;
+
+        for (int i = 0; i < altura; i++) {
+            for (int j = 0; j < ancho; j++) {
+                barcode[i][j] = pixeles.get(indice);
+                indice++;
+            }
+        }
+
+        ArrayList<Integer> filaBarcode = new ArrayList<>();
+
+
+        for (int i = 0; i < ancho; i++) {
+            filaBarcode.add(barcode[0][i]);
+        }
+
+        System.out.println(filaBarcode);
+
+        ArrayList<Integer> valoresBarSpace = countValuesWithInt(filaBarcode);
+
+        ArrayList<Integer> sorted = new ArrayList<>(valoresBarSpace);
+        Collections.sort(sorted);
+
+        int narrow = sorted.get(0);
+        int wide = sorted.get(sorted.size() - 1);
+
+        int threshold = (narrow + wide) / 2;
+
+        // Hacer un cadena de tipo string en formato 0 y 1
+        String numListToString = "";
+
+        for (int i = 0; i < valoresBarSpace.size(); i++) {
+            int numActual = valoresBarSpace.get(i);
+
+            if (numActual <= threshold){
+                numListToString += "0";
+            } else {
+                numListToString += "1";
+            }
+        }
+
+        // Hace grupos de 5 y busca en el mapa el grupo de 5 para traducirlo
+        String res = "";
+        String groupFiveBits = "";
+
+        for (int i = 0; i < numListToString.length(); i++) {
+            char bit = numListToString.charAt(i);
+
+            if ((i + 1) % 6 == 0) {
+                continue;
+            }
+
+            groupFiveBits += bit;
+
+            if (groupFiveBits.length() == 5){
+                String value = diccionaryBitToKey.get(groupFiveBits);
+                res = res + value;
+                groupFiveBits = "";
+            }
+
+        }
+
+        return res;
+    }
+
+    private static ArrayList<Integer> countValuesWithInt(ArrayList<Integer> pixeles) {
+        ArrayList<Integer> res = new ArrayList<>();
+
+        int contador = 1;
+
+        for (int i = 0; i < pixeles.size() - 1; i++) {
+            if (pixeles.get(i).equals(pixeles.get(i + 1))){
+                contador++;
+            } else {
+                res.add(contador);
+                contador = 1;
+            }
+        }
+
+        res.add(contador);
+
+        return res;
     }
 
     // Genera imatge a partir de codi de barres
