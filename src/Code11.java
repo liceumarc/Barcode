@@ -196,9 +196,9 @@ public class Code11 {
 
     // Decodifica una imatge. La imatge ha d'estar en format "ppm"
     public static String decodeImage(String str) {
-        // Eliminar el comentario
+        System.out.println(str.length());
         str = str.replaceAll("#.*", "");
-        // Crear una lista con todos los numeros
+
         Matcher matcher = Pattern.compile("\\d+").matcher(str);
         List<Integer> numeros = new ArrayList<>();
 
@@ -209,17 +209,17 @@ public class Code11 {
         int ancho = numeros.get(1);
         int altura = numeros.get(2);
 
-        // Crear una instancia de cada ( 3 elementos "RGB" ; 3 elementos = 1 color RGB )
-        // Luego lo identifico como 0 y 1 para saber cual es la parte negra y los espacios en blanco
         List<Integer> pixeles = new ArrayList<>();
 
-        for (int i = 3; i < numeros.size() - 3; i += 3) {
-
+        for (int i = 4; i < numeros.size(); i += 3) {
+            if (i + 2 >= numeros.size()) {
+                break;
+            }
             int r = numeros.get(i);
             int g = numeros.get(i + 1);
             int b = numeros.get(i + 2);
 
-            PixelRGB pixel = new PixelRGB(r,g,b);
+            PixelRGB pixel = new PixelRGB(r, g, b);
             pixeles.add(pixel.es0or1());
         }
 
@@ -228,46 +228,64 @@ public class Code11 {
 
         for (int i = 0; i < altura; i++) {
             for (int j = 0; j < ancho; j++) {
-                barcode[i][j] = pixeles.get(indice);
-                indice++;
+                if (indice < pixeles.size()) {
+                    barcode[i][j] = pixeles.get(indice);
+                    indice++;
+                }
             }
         }
 
+        System.out.println(pixeles.size());
+        System.out.println(numeros.size());
         ArrayList<Integer> filaBarcode = new ArrayList<>();
-
+        int filaCentral = altura / 2;
 
         for (int i = 0; i < ancho; i++) {
-            filaBarcode.add(barcode[0][i]);
+            filaBarcode.add(barcode[filaCentral][i]);
         }
 
-        System.out.println(filaBarcode);
+        int start = 0;
+        while (start < filaBarcode.size() && filaBarcode.get(start) == 1) {
+            start++;
+        }
 
-        ArrayList<Integer> valoresBarSpace = countValuesWithInt(filaBarcode);
+        int end = filaBarcode.size() - 1;
+        while (end >= 0 && filaBarcode.get(end) == 1) {
+            end--;
+        }
 
-        ArrayList<Integer> sorted = new ArrayList<>(valoresBarSpace);
-        Collections.sort(sorted);
+        ArrayList<Integer> filaRecortada = new ArrayList<>();
+        if (start <= end) {
+            for (int i = start; i <= end; i++) {
+                filaRecortada.add(filaBarcode.get(i));
+            }
+        }
 
-        int narrow = sorted.get(0);
-        int wide = sorted.get(sorted.size() - 1);
+        ArrayList<Integer> valoresBarSpace = countValuesWithInt(filaRecortada);
 
-        int threshold = (narrow + wide) / 2;
+        double suma = 0;
+        for (int valor : valoresBarSpace) {
+            suma += valor;
+        }
+        double threshold = suma / valoresBarSpace.size();
 
-        // Hacer un cadena de tipo string en formato 0 y 1
         String numListToString = "";
 
         for (int i = 0; i < valoresBarSpace.size(); i++) {
             int numActual = valoresBarSpace.get(i);
 
-            if (numActual <= threshold){
+            if (numActual < threshold){ // Cambiamos <= por <
                 numListToString += "0";
             } else {
                 numListToString += "1";
             }
         }
 
-        // Hace grupos de 5 y busca en el mapa el grupo de 5 para traducirlo
-        String res = "";
-        String groupFiveBits = "";
+        StringBuilder res = new StringBuilder();
+        StringBuilder groupFiveBits = new StringBuilder();
+
+        System.out.println(numListToString);
+        System.out.println(numListToString.length());
 
         for (int i = 0; i < numListToString.length(); i++) {
             char bit = numListToString.charAt(i);
@@ -276,17 +294,18 @@ public class Code11 {
                 continue;
             }
 
-            groupFiveBits += bit;
+            groupFiveBits.append(bit);
 
             if (groupFiveBits.length() == 5){
-                String value = diccionaryBitToKey.get(groupFiveBits);
-                res = res + value;
-                groupFiveBits = "";
+                String value = diccionaryBitToKey.get(groupFiveBits.toString());
+                if (value != null) {
+                    res.append(value);
+                }
+                groupFiveBits.setLength(0);
             }
-
         }
 
-        return res;
+        return res.toString();
     }
 
     private static ArrayList<Integer> countValuesWithInt(ArrayList<Integer> pixeles) {
