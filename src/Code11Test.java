@@ -46,7 +46,7 @@ public class Code11Test {
         assertEquals("*3576-989*", Code11.decodeImage(UtilTests.getImageAsString("code11_3576-989.ppm")));
         assertEquals("*446688120*", Code11.decodeImage(UtilTests.getImageAsString("code11_446688120.ppm")));
         assertEquals("*9854-9812*", Code11.decodeImage(UtilTests.getImageAsString("code11_9854-9812.ppm")));
-        // assertEquals("*6675-981-743*", Code11.decodeImage(UtilTests.getImageAsString("code11_6675-981-743_bis.ppm")));
+        assertEquals("*6675-981-743*", Code11.decodeImage(UtilTests.getImageAsString("code11_6675-981-743_bis.ppm")));
     }
 
     @Test

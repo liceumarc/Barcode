@@ -193,154 +193,227 @@ public class Code11 {
         return true;
     }
 
-
-    // Decodifica una imatge. La imatge ha d'estar en format "ppm"
     public static String decodeImage(String str) {
-        str = str.replaceAll("#.*", "");
+        // 1. Convertir la imagen PPM a una matriz binaria (0 = Negro/Barra, 1 = Blanco/Espacio)
+        int[][] matrix = parsePpmToMatrix(str);
 
+        // 2. Generar líneas de escaneo en múltiples ángulos (0º, 90º, 45º, 135º)
+        List<int[]> scanlines = generateScanlines(matrix);
+
+        String bestBarcode = "";
+        int maxLength = 0;
+
+        // 3. Procesar cada línea buscando la lectura más completa
+        for (int[] line : scanlines) {
+            String decoded = processScanline(line);
+
+            if (decoded != null && decoded.length() > maxLength) {
+                maxLength = decoded.length();
+                bestBarcode = decoded;
+            }
+        }
+
+        return bestBarcode;
+    }
+
+    private static int[][] parsePpmToMatrix(String str) {
+        str = str.replaceAll("#.*", "");
         Matcher matcher = Pattern.compile("\\d+").matcher(str);
         List<Integer> numeros = new ArrayList<>();
 
-        while(matcher.find()){
+        while (matcher.find()) {
             numeros.add(Integer.parseInt(matcher.group()));
         }
 
         int ancho = numeros.get(1);
         int altura = numeros.get(2);
+        int[][] matrix = new int[altura][ancho];
 
-        List<Integer> pixeles = new ArrayList<>();
-
-        for (int i = 4; i < numeros.size(); i += 3) {
-            if (i + 2 >= numeros.size()) {
-                break;
-            }
-            int r = numeros.get(i);
-            int g = numeros.get(i + 1);
-            int b = numeros.get(i + 2);
-
-            PixelRGB pixel = new PixelRGB(r, g, b);
-            pixeles.add(pixel.es0or1());
-        }
-
-        int[][] barcode = new int[altura][ancho];
-        int indice = 0;
-
-        for (int i = 0; i < altura; i++) {
-            for (int j = 0; j < ancho; j++) {
-                if (indice < pixeles.size()) {
-                    barcode[i][j] = pixeles.get(indice);
-                    indice++;
+        int index = 4;
+        for (int y = 0; y < altura; y++) {
+            for (int x = 0; x < ancho; x++) {
+                if (index + 2 < numeros.size()) {
+                    int r = numeros.get(index++);
+                    int g = numeros.get(index++);
+                    int b = numeros.get(index++);
+                    PixelRGB pixel = new PixelRGB(r, g, b);
+                    matrix[y][x] = pixel.es0or1();
                 }
             }
         }
-
-        for (int f = 0; f < altura; f++) {
-            int filaActual = (altura / 2) + ((f % 2 == 0 ? 1 : -1) * ((f + 1) / 2));
-
-            if (filaActual < 0 || filaActual >= altura) {
-                continue;
-            }
-
-            ArrayList<Integer> filaBarcode = new ArrayList<>();
-            for (int i = 0; i < ancho; i++) {
-                filaBarcode.add(barcode[filaActual][i]);
-            }
-
-            int start = 0;
-            while (start < filaBarcode.size() && filaBarcode.get(start) == 1) {
-                start++;
-            }
-
-            int end = filaBarcode.size() - 1;
-            while (end >= 0 && filaBarcode.get(end) == 1) {
-                end--;
-            }
-
-            ArrayList<Integer> filaRecortada = new ArrayList<>();
-            if (start <= end) {
-                for (int i = start; i <= end; i++) {
-                    filaRecortada.add(filaBarcode.get(i));
-                }
-            } else {
-                continue;
-            }
-
-            ArrayList<Integer> valoresBarSpace = countValuesWithInt(filaRecortada);
-
-            if (valoresBarSpace.size() < 20) {
-                continue;
-            }
-
-            ArrayList<Integer> sorted = new ArrayList<>(valoresBarSpace);
-            Collections.sort(sorted);
-
-            double threshold = sorted.get(sorted.size() / 2) * 1.85;
-
-            StringBuilder numListToString = new StringBuilder();
-            for (int numActual : valoresBarSpace) {
-                if (numActual < threshold) {
-                    numListToString.append("0");
-                } else {
-                    numListToString.append("1");
-                }
-            }
-
-            StringBuilder res = new StringBuilder();
-            StringBuilder groupFiveBits = new StringBuilder();
-            boolean valid = true;
-
-            for (int i = 0; i < numListToString.length(); i++) {
-                char bit = numListToString.charAt(i);
-
-                if ((i + 1) % 6 == 0) {
-                    continue;
-                }
-
-                groupFiveBits.append(bit);
-
-                if (groupFiveBits.length() == 5){
-                    String value = diccionaryBitToKey.get(groupFiveBits.toString());
-                    if (value != null) {
-                        res.append(value);
-                    } else {
-                        valid = false;
-                        break;
-                    }
-                    groupFiveBits.setLength(0);
-                }
-            }
-
-            String decodedBarcode = res.toString();
-
-            boolean hasMinimumLength = decodedBarcode.length() >= 2;
-            boolean hasValidStartAndStop = decodedBarcode.startsWith("*") && decodedBarcode.endsWith("*");
-            boolean isCompleteBarcode = hasMinimumLength && hasValidStartAndStop;
-
-            if (valid && isCompleteBarcode) {
-                return decodedBarcode;
-            }
-        }
-
-        return null;
+        return matrix;
     }
 
-    private static ArrayList<Integer> countValuesWithInt(ArrayList<Integer> pixeles) {
-        ArrayList<Integer> res = new ArrayList<>();
+    private static List<int[]> generateScanlines(int[][] matrix) {
+        List<int[]> lines = new ArrayList<>();
+        int h = matrix.length;
+        int w = matrix[0].length;
 
-        int contador = 1;
+        // Escaneos Horizontales (Filas)
+        for (int i = 0; i < h; i++) {
+            lines.add(matrix[i]);
+        }
 
-        for (int i = 0; i < pixeles.size() - 1; i++) {
-            if (pixeles.get(i).equals(pixeles.get(i + 1))){
-                contador++;
-            } else {
-                res.add(contador);
-                contador = 1;
+        // Escaneos Verticales (Columnas) - Para resolver verticalTest()
+        for (int x = 0; x < w; x++) {
+            int[] col = new int[h];
+            for (int y = 0; y < h; y++) col[y] = matrix[y][x];
+            lines.add(col);
+        }
+
+        // Escaneos Diagonales (\) - Para resolver rotatedImageTest()
+        for (int k = -h + 1; k < w; k++) {
+            int startX = Math.max(0, k);
+            int endX = Math.min(w - 1, h - 1 + k);
+
+            // Calculamos cuántos píxeles tendrá esta diagonal
+            int size = endX - startX + 1;
+
+            if (size > 20) {
+                int[] diagArray = new int[size];
+
+                // Rellenamos el array clásico con un bucle for
+                for (int i = 0; i < size; i++) {
+                    int x = startX + i;
+                    diagArray[i] = matrix[x - k][x];
+                }
+                lines.add(diagArray);
             }
         }
 
-        res.add(contador);
+        // Escaneos Anti-Diagonales (/) - Para resolver rotatedImageTest()
+        for (int k = 0; k < w + h - 1; k++) {
+            int startX = Math.max(0, k - h + 1);
+            int endX = Math.min(w - 1, k);
 
-        return res;
+            // 1. Calculamos el tamaño exacto de esta anti-diagonal
+            int size = endX - startX + 1;
+
+            // 2. Solo creamos el array y lo procesamos si tiene longitud suficiente
+            if (size > 20) {
+                int[] aDiagArray = new int[size];
+
+                // 3. Rellenamos el array primitivo con un bucle clásico
+                for (int i = 0; i < size; i++) {
+                    int x = startX + i;
+                    aDiagArray[i] = matrix[k - x][x];
+                }
+
+                lines.add(aDiagArray);
+            }
+        }
+
+        return lines;
+    }
+
+    private static String processScanline(int[] line) {
+        // Encontrar el inicio y fin reales del código de barras (Ignorar márgenes blancos exteriores)
+        int firstZero = -1;
+        int lastZero = -1;
+        for (int i = 0; i < line.length; i++) {
+            if (line[i] == 0) {
+                if (firstZero == -1) firstZero = i;
+                lastZero = i;
+            }
+        }
+
+        // Si no hay barras o el fragmento es muy pequeño, descartar línea
+        if (firstZero == -1 || lastZero - firstZero < 10) return null;
+
+        // Agrupar los píxeles consecutivos en grosores
+        List<Integer> widths = new ArrayList<>();
+        int current = 0;
+        int count = 0;
+        for (int i = firstZero; i <= lastZero; i++) {
+            if (line[i] == current) {
+                count++;
+            } else {
+                widths.add(count);
+                current = line[i];
+                count = 1;
+            }
+        }
+        widths.add(count);
+
+        if (widths.size() < 11) return null;
+
+        // Calcular el umbral dinámicamente ignorando las manchas de ruido atípicas
+        double threshold = calculateThreshold(widths);
+
+        // Convertir el grosor físico a secuencia lógica ("0" estrecho, "1" ancho)
+        StringBuilder logicalStr = new StringBuilder();
+        for (int w : widths) {
+            logicalStr.append(w <= threshold ? "0" : "1");
+        }
+
+        // Intentar leer de Izquierda a Derecha
+        String decodedForward = findValidBarcode(logicalStr.toString());
+
+        // Intentar leer de Derecha a Izquierda (Resuelve reverseImageTest)
+        String decodedReverse = findValidBarcode(logicalStr.reverse().toString());
+
+        if (decodedForward != null && decodedReverse != null) {
+            return decodedForward.length() > decodedReverse.length() ? decodedForward : decodedReverse;
+        }
+        return decodedForward != null ? decodedForward : decodedReverse;
+    }
+
+    private static double calculateThreshold(List<Integer> widths) {
+        if (widths.isEmpty()) return 1.0;
+
+        List<Integer> sorted = new ArrayList<>(widths);
+        Collections.sort(sorted);
+
+        int narrow = sorted.get(sorted.size() / 2);
+
+        int wideIndex = (int) (sorted.size() * 0.85);
+        if (wideIndex >= sorted.size()) {
+            wideIndex = sorted.size() - 1;
+        }
+
+        int wide = sorted.get(wideIndex);
+
+        if (wide <= narrow) {
+            return narrow * 1.85;
+        }
+
+        return (narrow + wide) / 2.0;
+    }
+
+    private static String findValidBarcode(String logicalStr) {
+        String startChar = diccionaryKeyToBit.get('*');
+        String bestMatch = null;
+
+        // Saltamos de 2 en 2 porque los caracteres de inicio SIEMPRE empiezan en una barra (índice par)
+        for (int i = 0; i <= logicalStr.length() - 5; i += 2) {
+            if (logicalStr.substring(i, i + 5).equals(startChar)) {
+                StringBuilder res = new StringBuilder();
+                boolean valid = true;
+
+                // Leemos los caracteres con saltos de 6 (5 bits + 1 bit de espacio entre caracteres)
+                for (int j = i; j <= logicalStr.length() - 5; j += 6) {
+                    String chunk = logicalStr.substring(j, j + 5);
+                    String ch = diccionaryBitToKey.get(chunk);
+
+                    if (ch == null) {
+                        valid = false;
+                        break; // Secuencia inválida encontrada por ruido
+                    }
+
+                    res.append(ch);
+
+                    // Si encontramos el cierre y el código es coherente
+                    if (ch.equals("*") && res.length() >= 2) {
+                        if (bestMatch == null || res.length() > bestMatch.length()) {
+                            bestMatch = res.toString();
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        return bestMatch;
     }
 
     // Genera imatge a partir de codi de barres
