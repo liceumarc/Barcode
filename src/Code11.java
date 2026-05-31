@@ -196,7 +196,6 @@ public class Code11 {
 
     // Decodifica una imatge. La imatge ha d'estar en format "ppm"
     public static String decodeImage(String str) {
-        System.out.println(str.length());
         str = str.replaceAll("#.*", "");
 
         Matcher matcher = Pattern.compile("\\d+").matcher(str);
@@ -235,77 +234,94 @@ public class Code11 {
             }
         }
 
-        System.out.println(pixeles.size());
-        System.out.println(numeros.size());
-        ArrayList<Integer> filaBarcode = new ArrayList<>();
-        int filaCentral = altura / 2;
+        for (int f = 0; f < altura; f++) {
+            int filaActual = (altura / 2) + ((f % 2 == 0 ? 1 : -1) * ((f + 1) / 2));
 
-        for (int i = 0; i < ancho; i++) {
-            filaBarcode.add(barcode[filaCentral][i]);
-        }
-
-        int start = 0;
-        while (start < filaBarcode.size() && filaBarcode.get(start) == 1) {
-            start++;
-        }
-
-        int end = filaBarcode.size() - 1;
-        while (end >= 0 && filaBarcode.get(end) == 1) {
-            end--;
-        }
-
-        ArrayList<Integer> filaRecortada = new ArrayList<>();
-        if (start <= end) {
-            for (int i = start; i <= end; i++) {
-                filaRecortada.add(filaBarcode.get(i));
-            }
-        }
-
-        ArrayList<Integer> valoresBarSpace = countValuesWithInt(filaRecortada);
-
-        double suma = 0;
-        for (int valor : valoresBarSpace) {
-            suma += valor;
-        }
-        double threshold = suma / valoresBarSpace.size();
-
-        String numListToString = "";
-
-        for (int i = 0; i < valoresBarSpace.size(); i++) {
-            int numActual = valoresBarSpace.get(i);
-
-            if (numActual < threshold){ // Cambiamos <= por <
-                numListToString += "0";
-            } else {
-                numListToString += "1";
-            }
-        }
-
-        StringBuilder res = new StringBuilder();
-        StringBuilder groupFiveBits = new StringBuilder();
-
-        System.out.println(numListToString);
-        System.out.println(numListToString.length());
-
-        for (int i = 0; i < numListToString.length(); i++) {
-            char bit = numListToString.charAt(i);
-
-            if ((i + 1) % 6 == 0) {
+            if (filaActual < 0 || filaActual >= altura) {
                 continue;
             }
 
-            groupFiveBits.append(bit);
+            ArrayList<Integer> filaBarcode = new ArrayList<>();
+            for (int i = 0; i < ancho; i++) {
+                filaBarcode.add(barcode[filaActual][i]);
+            }
 
-            if (groupFiveBits.length() == 5){
-                String value = diccionaryBitToKey.get(groupFiveBits.toString());
-                if (value != null) {
-                    res.append(value);
+            int start = 0;
+            while (start < filaBarcode.size() && filaBarcode.get(start) == 1) {
+                start++;
+            }
+
+            int end = filaBarcode.size() - 1;
+            while (end >= 0 && filaBarcode.get(end) == 1) {
+                end--;
+            }
+
+            ArrayList<Integer> filaRecortada = new ArrayList<>();
+            if (start <= end) {
+                for (int i = start; i <= end; i++) {
+                    filaRecortada.add(filaBarcode.get(i));
                 }
-                groupFiveBits.setLength(0);
+            } else {
+                continue;
+            }
+
+            ArrayList<Integer> valoresBarSpace = countValuesWithInt(filaRecortada);
+
+            if (valoresBarSpace.size() < 20) {
+                continue;
+            }
+
+            ArrayList<Integer> sorted = new ArrayList<>(valoresBarSpace);
+            Collections.sort(sorted);
+
+            double threshold = sorted.get(sorted.size() / 2) * 1.85;
+
+            StringBuilder numListToString = new StringBuilder();
+            for (int numActual : valoresBarSpace) {
+                if (numActual < threshold) {
+                    numListToString.append("0");
+                } else {
+                    numListToString.append("1");
+                }
+            }
+
+            StringBuilder res = new StringBuilder();
+            StringBuilder groupFiveBits = new StringBuilder();
+            boolean valid = true;
+
+            for (int i = 0; i < numListToString.length(); i++) {
+                char bit = numListToString.charAt(i);
+
+                if ((i + 1) % 6 == 0) {
+                    continue;
+                }
+
+                groupFiveBits.append(bit);
+
+                if (groupFiveBits.length() == 5){
+                    String value = diccionaryBitToKey.get(groupFiveBits.toString());
+                    if (value != null) {
+                        res.append(value);
+                    } else {
+                        valid = false;
+                        break;
+                    }
+                    groupFiveBits.setLength(0);
+                }
+            }
+
+            String decodedBarcode = res.toString();
+
+            boolean hasMinimumLength = decodedBarcode.length() >= 2;
+            boolean hasValidStartAndStop = decodedBarcode.startsWith("*") && decodedBarcode.endsWith("*");
+            boolean isCompleteBarcode = hasMinimumLength && hasValidStartAndStop;
+
+            if (valid && isCompleteBarcode) {
+                return decodedBarcode;
             }
         }
 
-        return res.toString();
+        return null;
     }
 
     private static ArrayList<Integer> countValuesWithInt(ArrayList<Integer> pixeles) {
