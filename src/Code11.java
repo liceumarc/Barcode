@@ -169,6 +169,7 @@ public class Code11 {
         char actual = s.charAt(0);
 
         for (int i = 1; i < s.length(); i++) {
+
             char index = s.charAt(i);
 
             if (actual == index){
